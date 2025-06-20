@@ -12,10 +12,10 @@ A modern file explorer built with Python's `tkinter` and `customtkinter` for a s
 | File open or delete integration                       | ⬜ Planned |
 | Open GUI with browse button                           | ✔ Done     |
 | View total size of current folder files               | ✔ Done     |
-| Set default as downloads folder                       | ⬜ Planned |
-| Double-click folders to open and browse               | ⬜ Planned |
-| Back/forward/home navigation buttons                  | ⬜ Planned |
-| Right-click options: open, delete, reveal in explorer | ⬜ Planned |
+| Set default as downloads folder                       | ✔ Done     |
+| Double-click folders to open and browse               | ✔ Done     |
+| Back/forward/home navigation buttons                  | ✔ Done     |
+| Right-click options: open, delete, reveal in explorer | ✔ Done     |
 
 ## Installation
 

@@ -1,0 +1,10 @@
+1. Dark/light theme switch
+2. Search or filter
+3. Export to text file
+4. File open or delete integration
+5. Open Gui with browse button ✔
+6. View total size of current folder files✔
+7. Set default as downloads folder
+8. Make folders double-clickable(openable), then that folder contents will show(meaning that folder will be choosen/browsed)
+9. Allow user to go back or forward or home(downloads) with buttons if there is user gone to forward or backward (keep track)
+10. On right click show options to open or delete that folder/file

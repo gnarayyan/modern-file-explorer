@@ -5,7 +5,6 @@ from tkinter import filedialog, messagebox
 from pathlib import Path
 import subprocess
 
-# Initialize customtkinter
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
@@ -59,8 +58,12 @@ class FileExplorerApp(ctk.CTk):
         self.forward_history = []
         self.current_path = Path.home() / "Downloads" / "8th Sem"
         self.selected_widget = None
+        self.view_mode = "grid"
 
-        # Navigation bar
+        self.folder_color = "#324b5e"
+        self.file_color = "#2d2d2d"
+        self.highlight_color = "#1f6aa5"
+
         nav_frame = ctk.CTkFrame(self)
         nav_frame.pack(pady=5, padx=10, fill="x")
 
@@ -76,23 +79,28 @@ class FileExplorerApp(ctk.CTk):
         self.select_btn = ctk.CTkButton(
             nav_frame, text="📁 Browse", command=self.browse_folder, width=80
         )
+        self.toggle_btn = ctk.CTkButton(
+            nav_frame, text="🗂️ Toggle View", command=self.toggle_view, width=120
+        )
 
         self.back_btn.pack(side="left", padx=5)
         self.forward_btn.pack(side="left", padx=5)
         self.home_btn.pack(side="left", padx=5)
         self.select_btn.pack(side="left", padx=5)
+        self.toggle_btn.pack(side="left", padx=5)
 
-        # Scrollable content area
         self.scroll_frame = ctk.CTkScrollableFrame(self, label_text="Contents")
         self.scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Total size label
         self.total_label = ctk.CTkLabel(
             self, text="Total: 0 B", font=("Segoe UI", 14, "bold")
         )
         self.total_label.pack(pady=5)
 
-        # Initial load
+        self.load_folder(self.current_path)
+
+    def toggle_view(self):
+        self.view_mode = "grid" if self.view_mode == "list" else "list"
         self.load_folder(self.current_path)
 
     def browse_folder(self):
@@ -127,26 +135,55 @@ class FileExplorerApp(ctk.CTk):
         total_size = 0
 
         try:
-            for item in sorted(folder.iterdir(), key=lambda x: x.name.lower()):
+            items = sorted(folder.iterdir(), key=lambda x: x.name.lower())
+            row, col = 0, 0
+
+            for item in items:
                 if item.is_dir():
                     size = get_folder_size(item)
                     total_size += size
-                    label = f"📁 {item.name} ({format_size(size)})"
+                    label = f"📁 {item.name}\n{format_size(size)}"
                     btn = ctk.CTkButton(
                         self.scroll_frame,
                         text=label,
-                        anchor="w",
+                        anchor="center",
+                        fg_color=self.folder_color,
+                        hover_color="#3a5a72",
                         command=lambda p=item: self.open_folder(p),
+                        corner_radius=8,
+                        font=("Consolas", 14),
+                        height=70,
+                        width=200,
                     )
-                    btn.pack(fill="x", padx=5, pady=2)
                     btn.bind("<Button-1>", lambda e, b=btn: self.select_item(b))
+                    widget = btn
                 else:
                     size = item.stat().st_size
                     total_size += size
-                    label = f"{get_emoji(item)} {item.name} ({format_size(size)})"
-                    lbl = ctk.CTkLabel(self.scroll_frame, text=label, anchor="w")
-                    lbl.pack(fill="x", padx=5, pady=2)
+                    label = f"{get_emoji(item)} {item.name}\n{format_size(size)}"
+                    lbl = ctk.CTkLabel(
+                        self.scroll_frame,
+                        text=label,
+                        anchor="center",
+                        fg_color=self.file_color,
+                        text_color="#dcdcdc",
+                        font=("Consolas", 14),
+                        corner_radius=8,
+                        height=70,
+                        width=200,
+                    )
                     lbl.bind("<Button-1>", lambda e, l=lbl: self.select_item(l))
+                    widget = lbl
+
+                if self.view_mode == "grid":
+                    widget.grid(row=row, column=col, padx=8, pady=8)
+                    col += 1
+                    if col >= 4:
+                        col = 0
+                        row += 1
+                else:
+                    widget.pack(fill="x", padx=5, pady=3)
+
         except Exception as e:
             messagebox.showerror("Error", f"Cannot open folder:\n{e}")
             return
@@ -161,8 +198,13 @@ class FileExplorerApp(ctk.CTk):
 
     def select_item(self, widget):
         if self.selected_widget:
-            self.selected_widget.configure(fg_color="transparent")
-        widget.configure(fg_color=ctk.ThemeManager.theme["CTkButton"]["fg_color"])
+            prev_color = (
+                self.folder_color
+                if isinstance(self.selected_widget, ctk.CTkButton)
+                else self.file_color
+            )
+            self.selected_widget.configure(fg_color=prev_color)
+        widget.configure(fg_color=self.highlight_color)
         self.selected_widget = widget
 
 

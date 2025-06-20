@@ -19,9 +19,9 @@ A modern file explorer built with Python's `tkinter` and `customtkinter` for a s
 | show every folder as button (clickable, can open)       | ✔ Done     |
 | show files as label(non clickable, cannot open)         | ✔ Done     |
 | Make file/folder selectable (color changes + togglable) | ✔ Done     |
-| 📌 Grid / List view toggle                              | ⬜ Planned |
-| 🎨 Consistent and Distinct color in folders and file    | ⬜ Planned |
-| ✅ Selectable widgets with consistent highlighting      | ⬜ Planned |
+| Grid / List view toggle                                 | ✔ Done     |
+| Consistent and Distinct color in folders and file       | ✔ Done     |
+| Selectable widgets with consistent highlighting         | ✔ Done     |
 
 ## Installation
 

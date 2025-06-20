@@ -1,22 +1,19 @@
 import os
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, ProcessPoolExecutor
+import multiprocessing
 
 
-def get_folder_size_optimized(path, max_threads=8):
+def _get_folder_size_single(path):
     """
-    Computes total size of a folder (including all files/subfolders)
-    using os.scandir + multithreading for subdirectory traversal.
-
-    Args:
-        path (str): Folder path.
-        max_threads (int): Max concurrent threads for scanning subfolders.
-
-    Returns:
-        int: Total size in bytes. Returns -1 on error.
+    Helper for multiprocessing – calculates folder size using threading.
     """
-    if not os.path.isdir(path):
-        return -1
+    return get_folder_size_threaded(path)
 
+
+def get_folder_size_threaded(path, max_threads=8):
+    """
+    Gets folder size using threads for file and subdirectory access.
+    """
     total_size = 0
     subdirs = []
 
@@ -29,23 +26,55 @@ def get_folder_size_optimized(path, max_threads=8):
                     elif entry.is_dir(follow_symlinks=False):
                         subdirs.append(entry.path)
                 except Exception as e:
-                    print(f"Error accessing {entry.path}: {e}")
+                    print(f"[Threading] Error: {e}")
     except Exception as e:
-        print(f"Error accessing path {path}: {e}")
-        return -1
+        print(f"[Threading] Could not access {path}: {e}")
+        return 0
 
-    # Process subdirectories in parallel
+    # Optional: Threaded processing of deeper levels (but can also be done in multiprocessing)
     with ThreadPoolExecutor(max_workers=max_threads) as executor:
         futures = {
-            executor.submit(get_folder_size_optimized, subdir, max_threads): subdir
-            for subdir in subdirs
+            executor.submit(get_folder_size_threaded, sub, max_threads): sub
+            for sub in subdirs
         }
         for future in as_completed(futures):
             try:
-                size = future.result()
-                if size != -1:
-                    total_size += size
+                total_size += future.result()
             except Exception as e:
-                print(f"Error processing {futures[future]}: {e}")
+                print(f"[Threading] Error in {futures[future]}: {e}")
+
+    return total_size
+
+
+def get_folder_size_optimized(path, max_processes=4):
+    """
+    Combines multiprocessing (for depth) and threading (for breadth) to optimize folder size retrieval.
+    """
+    if not os.path.isdir(path):
+        return -1
+
+    subdirs = []
+    total_size = 0
+
+    try:
+        with os.scandir(path) as it:
+            for entry in it:
+                try:
+                    if entry.is_file(follow_symlinks=False):
+                        total_size += entry.stat(follow_symlinks=False).st_size
+                    elif entry.is_dir(follow_symlinks=False):
+                        subdirs.append(entry.path)
+                except Exception as e:
+                    print(f"[Main] Error: {e}")
+    except Exception as e:
+        print(f"[Main] Could not scan {path}: {e}")
+        return -1
+
+    with ProcessPoolExecutor(max_workers=max_processes) as executor:
+        try:
+            results = executor.map(_get_folder_size_single, subdirs)
+            total_size += sum(results)
+        except Exception as e:
+            print(f"[Multiprocessing] Error: {e}")
 
     return total_size

@@ -1,0 +1,50 @@
+# Modern File Explorer
+
+A modern file explorer built with Python's `tkinter` and `customtkinter` for a sleek, customizable GUI.
+
+## Features
+
+| Feature                                               | Status     |
+| ----------------------------------------------------- | ---------- |
+| Dark/light theme switch                               | ⬜ Planned |
+| Search or filter                                      | ⬜ Planned |
+| Export to text file                                   | ⬜ Planned |
+| File open or delete integration                       | ⬜ Planned |
+| Open GUI with browse button                           | ✔ Done     |
+| View total size of current folder files               | ✔ Done     |
+| Set default as downloads folder                       | ⬜ Planned |
+| Double-click folders to open and browse               | ⬜ Planned |
+| Back/forward/home navigation buttons                  | ⬜ Planned |
+| Right-click options: open, delete, reveal in explorer | ⬜ Planned |
+
+## Installation
+
+1. **Clone the repository:**
+
+   ```sh
+   git clone https://github.com/yourusername/modern-file-explorer.git
+   cd modern-file-explorer
+   ```
+
+2. **Install dependencies:**
+   This project requires Python 3.8+ and `customtkinter`:
+   ```sh
+   pip install customtkinter
+   ```
+
+## Usage
+
+Run the main Python file:
+
+```sh
+python main.py
+```
+
+## Notes
+
+- This project uses [customtkinter](https://github.com/TomSchimansky/CustomTkinter) for modern themed widgets.
+- Make sure you have `tkinter` installed (usually included with Python).
+
+## Contributing
+
+Feel free to open issues or submit pull requests for new features or bug fixes!

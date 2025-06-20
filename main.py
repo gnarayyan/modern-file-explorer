@@ -1,5 +1,6 @@
 import os
 import shutil
+import threading
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 from pathlib import Path
@@ -36,16 +37,6 @@ def get_emoji(file):
         return "📄"
 
 
-def get_folder_size(path):
-    total = 0
-    for dirpath, _, filenames in os.walk(path):
-        for f in filenames:
-            fp = os.path.join(dirpath, f)
-            if os.path.isfile(fp):
-                total += os.path.getsize(fp)
-    return total
-
-
 def reveal_in_explorer(path):
     subprocess.run(['explorer', '/select,', os.path.normpath(path)])
 
@@ -66,8 +57,8 @@ class FileExplorerApp(ctk.CTk):
         self.file_color = "#2d2d2d"
         self.highlight_color = "#1f6aa5"
 
-        self.sort_by = "name"  # or "size"
-        self.sort_order = "asc"  # or "desc"
+        self.sort_by = "name"
+        self.sort_order = "asc"
 
         nav_frame = ctk.CTkFrame(self)
         nav_frame.pack(pady=5, padx=10, fill="x")
@@ -108,6 +99,10 @@ class FileExplorerApp(ctk.CTk):
         )
         self.sort_order_btn.pack(side="left", padx=5)
 
+        self.progress_bar = ctk.CTkProgressBar(self, width=500)
+        self.progress_bar.set(0)
+        self.progress_bar.pack(pady=3)
+
         self.scroll_frame = ctk.CTkScrollableFrame(self, label_text="Contents")
         self.scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
@@ -116,11 +111,11 @@ class FileExplorerApp(ctk.CTk):
         )
         self.total_label.pack(pady=5)
 
-        self.load_folder(self.current_path)
+        self.load_folder_async(self.current_path)
 
     def toggle_view(self):
         self.view_mode = "grid" if self.view_mode == "list" else "list"
-        self.load_folder(self.current_path)
+        self.load_folder_async(self.current_path)
 
     def browse_folder(self):
         folder = filedialog.askdirectory()
@@ -128,43 +123,51 @@ class FileExplorerApp(ctk.CTk):
             self.forward_history.clear()
             self.history.append(self.current_path)
             self.current_path = Path(folder)
-            self.load_folder(self.current_path)
+            self.load_folder_async(self.current_path)
 
     def go_back(self):
         if self.history:
             self.forward_history.append(self.current_path)
             self.current_path = self.history.pop()
-            self.load_folder(self.current_path)
+            self.load_folder_async(self.current_path)
 
     def go_forward(self):
         if self.forward_history:
             self.history.append(self.current_path)
             self.current_path = self.forward_history.pop()
-            self.load_folder(self.current_path)
+            self.load_folder_async(self.current_path)
 
     def go_home(self):
         self.forward_history.clear()
         self.history.append(self.current_path)
         self.current_path = Path.home() / "Downloads"
-        self.load_folder(self.current_path)
+        self.load_folder_async(self.current_path)
 
     def change_sort_option(self, value):
         self.sort_by = value
-        self.load_folder(self.current_path)
+        self.load_folder_async(self.current_path)
 
     def toggle_sort_order(self):
         self.sort_order = "desc" if self.sort_order == "asc" else "asc"
         arrow = "⬆ Desc" if self.sort_order == "desc" else "⬇ Asc"
         self.sort_order_btn.configure(text=arrow)
-        self.load_folder(self.current_path)
+        self.load_folder_async(self.current_path)
 
-    def load_folder(self, folder):
+    def load_folder_async(self, folder):
+        self.progress_bar.set(0)
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
+        threading.Thread(
+            target=self._load_folder_thread, args=(folder,), daemon=True
+        ).start()
+
+    def _load_folder_thread(self, folder):
         total_size = 0
+        items_data = []
 
         try:
             items = list(folder.iterdir())
+            total_items = len(items)
 
             def get_sort_key(item):
                 if self.sort_by == "size":
@@ -178,65 +181,85 @@ class FileExplorerApp(ctk.CTk):
 
             items.sort(key=get_sort_key, reverse=(self.sort_order == "desc"))
 
-            row, col = 0, 0
-
-            for item in items:
+            for index, item in enumerate(items):
                 if item.is_dir():
                     size = get_folder_size_optimized(item)
                     total_size += size
-                    label = f"📁 {item.name}\n{format_size(size)}"
-                    btn = ctk.CTkButton(
-                        self.scroll_frame,
-                        text=label,
-                        anchor="center",
-                        fg_color=self.folder_color,
-                        hover_color="#3a5a72",
-                        command=lambda p=item: self.open_folder(p),
-                        corner_radius=8,
-                        font=("Consolas", 14),
-                        height=70,
-                        width=200,
-                    )
-                    btn.bind("<Button-1>", lambda e, b=btn: self.select_item(b))
-                    widget = btn
+                    items_data.append(("folder", item, size))
                 else:
                     size = item.stat().st_size
                     total_size += size
-                    label = f"{get_emoji(item)} {item.name}\n{format_size(size)}"
-                    lbl = ctk.CTkLabel(
-                        self.scroll_frame,
-                        text=label,
-                        anchor="center",
-                        fg_color=self.file_color,
-                        text_color="#dcdcdc",
-                        font=("Consolas", 14),
-                        corner_radius=8,
-                        height=70,
-                        width=200,
-                    )
-                    lbl.bind("<Button-1>", lambda e, l=lbl: self.select_item(l))
-                    widget = lbl
+                    items_data.append(("file", item, size))
 
-                if self.view_mode == "grid":
-                    widget.grid(row=row, column=col, padx=8, pady=8)
-                    col += 1
-                    if col >= 4:
-                        col = 0
-                        row += 1
-                else:
-                    widget.pack(fill="x", padx=5, pady=3)
+                if total_items > 0 and (index % 2 == 0 or index == total_items - 1):
+                    progress = (index + 1) / total_items
+                    self.after(0, lambda p=progress: self.progress_bar.set(p))
 
         except Exception as e:
-            messagebox.showerror("Error", f"Cannot open folder:\n{e}")
+            self.after(
+                0, lambda: messagebox.showerror("Error", f"Cannot open folder:\n{e}")
+            )
             return
 
+        self.after(
+            0, lambda: self._update_ui_with_items(folder, items_data, total_size)
+        )
+
+    def _update_ui_with_items(self, folder, items_data, total_size):
+        for widget in self.scroll_frame.winfo_children():
+            widget.destroy()
+
+        row, col = 0, 0
+        for kind, item, size in items_data:
+            if kind == "folder":
+                label = f"📁 {item.name}\n{format_size(size)}"
+                btn = ctk.CTkButton(
+                    self.scroll_frame,
+                    text=label,
+                    anchor="center",
+                    fg_color=self.folder_color,
+                    hover_color="#3a5a72",
+                    command=lambda p=item: self.open_folder(p),
+                    corner_radius=8,
+                    font=("Consolas", 14),
+                    height=70,
+                    width=200,
+                )
+                btn.bind("<Button-1>", lambda e, b=btn: self.select_item(b))
+                widget = btn
+            else:
+                label = f"{get_emoji(item)} {item.name}\n{format_size(size)}"
+                lbl = ctk.CTkLabel(
+                    self.scroll_frame,
+                    text=label,
+                    anchor="center",
+                    fg_color=self.file_color,
+                    text_color="#dcdcdc",
+                    font=("Consolas", 14),
+                    corner_radius=8,
+                    height=70,
+                    width=200,
+                )
+                lbl.bind("<Button-1>", lambda e, l=lbl: self.select_item(l))
+                widget = lbl
+
+            if self.view_mode == "grid":
+                widget.grid(row=row, column=col, padx=8, pady=8)
+                col += 1
+                if col >= 4:
+                    col = 0
+                    row += 1
+            else:
+                widget.pack(fill="x", padx=5, pady=3)
+
         self.total_label.configure(text=f"Total: {format_size(total_size)}")
+        self.progress_bar.set(0)
 
     def open_folder(self, path):
         self.history.append(self.current_path)
         self.forward_history.clear()
         self.current_path = path
-        self.load_folder(path)
+        self.load_folder_async(path)
 
     def select_item(self, widget):
         if self.selected_widget:

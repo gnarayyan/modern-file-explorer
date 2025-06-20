@@ -15,10 +15,10 @@ A modern file explorer built with Python's `tkinter` and `customtkinter` for a s
 | Set default as downloads folder                         | ✔ Done     |
 | Double-click folders to open and browse                 | ✔ Done     |
 | Back/forward/home navigation buttons                    | ✔ Done     |
-| Right-click options: open, delete, reveal in explorer   | ✔ Done     |
-| show every folder as button (clickable, can open)       | ⬜ Planned |
-| show files as label(non clickable, cannot open)         | ⬜ Planned |
-| Make file/folder selectable (color changes + togglable) | ⬜ Planned |
+| Right-click options: open, delete, reveal in explorer   | ⬜ Planned |
+| show every folder as button (clickable, can open)       | ✔ Done     |
+| show files as label(non clickable, cannot open)         | ✔ Done     |
+| Make file/folder selectable (color changes + togglable) | ✔ Done     |
 
 ## Installation
 

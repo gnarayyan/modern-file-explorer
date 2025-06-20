@@ -1,12 +1,13 @@
-# 👇 Copy this entire script into a .py file and run it
-# Required packages: customtkinter (pip install customtkinter)
-
 import os
 import shutil
 import customtkinter as ctk
-from tkinter import filedialog, messagebox, Menu
+from tkinter import filedialog, messagebox
 from pathlib import Path
 import subprocess
+
+# Initialize customtkinter
+ctk.set_appearance_mode("System")
+ctk.set_default_color_theme("blue")
 
 
 def format_size(size_bytes):
@@ -51,46 +52,29 @@ def reveal_in_explorer(path):
 class FileExplorerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Enhanced Folder & File Explorer")
-        self.geometry("900x600")
-
-        ctk.set_appearance_mode("System")
-        ctk.set_default_color_theme("blue")
+        self.title("Modern File Explorer")
+        self.geometry("1000x700")
 
         self.history = []
         self.forward_history = []
-        self.current_path = Path.home() / "Downloads"
+        self.current_path = Path.home() / "Downloads" / "8th Sem"
+        self.selected_widget = None
 
+        # Navigation bar
         nav_frame = ctk.CTkFrame(self)
         nav_frame.pack(pady=5, padx=10, fill="x")
 
         self.back_btn = ctk.CTkButton(
-            nav_frame,
-            text="← Back",
-            command=self.go_back,
-            width=60,
-            font=("Consolas", 14),
+            nav_frame, text="← Back", command=self.go_back, width=60
         )
         self.forward_btn = ctk.CTkButton(
-            nav_frame,
-            text="→ Forward",
-            command=self.go_forward,
-            width=60,
-            font=("Consolas", 14),
+            nav_frame, text="→ Forward", command=self.go_forward, width=60
         )
         self.home_btn = ctk.CTkButton(
-            nav_frame,
-            text="🏠 Home",
-            command=self.go_home,
-            width=60,
-            font=("Consolas", 14),
+            nav_frame, text="🏠 Home", command=self.go_home, width=60
         )
         self.select_btn = ctk.CTkButton(
-            nav_frame,
-            text="📁 Browse",
-            command=self.browse_folder,
-            width=80,
-            font=("Consolas", 14),
+            nav_frame, text="📁 Browse", command=self.browse_folder, width=80
         )
 
         self.back_btn.pack(side="left", padx=5)
@@ -98,30 +82,17 @@ class FileExplorerApp(ctk.CTk):
         self.home_btn.pack(side="left", padx=5)
         self.select_btn.pack(side="left", padx=5)
 
-        self.file_list = ctk.CTkTextbox(self, font=("Consolas", 11), wrap="none")
-        self.file_list.pack(expand=True, fill="both", padx=10, pady=5)
-        self.file_list.bind("<Double-Button-1>", self.on_double_click)
-        self.file_list.bind("<Button-3>", self.on_right_click)
+        # Scrollable content area
+        self.scroll_frame = ctk.CTkScrollableFrame(self, label_text="Contents")
+        self.scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
+        # Total size label
         self.total_label = ctk.CTkLabel(
-            self, text="Total: 0 B", font=("Segoe UI", 13, "bold")
+            self, text="Total: 0 B", font=("Segoe UI", 14, "bold")
         )
         self.total_label.pack(pady=5)
-        # Context menu using standard tkinter
-        self.context_menu = Menu(self, tearoff=0)
-        self.context_menu.add_command(label="Open", command=self.open_selected)
-        self.context_menu.add_command(
-            label="Reveal in Explorer", command=self.reveal_selected
-        )
-        self.context_menu.add_command(label="Delete", command=self.delete_selected)
 
-        # self.context_menu = ctk.CTkMenu(self, tearoff=0)
-        # self.context_menu.add_command(label="Open", command=self.open_selected)
-        # self.context_menu.add_command(
-        #     label="Reveal in Explorer", command=self.reveal_selected
-        # )
-        # self.context_menu.add_command(label="Delete", command=self.delete_selected)
-
+        # Initial load
         self.load_folder(self.current_path)
 
     def browse_folder(self):
@@ -151,7 +122,8 @@ class FileExplorerApp(ctk.CTk):
         self.load_folder(self.current_path)
 
     def load_folder(self, folder):
-        self.file_list.delete("1.0", "end")
+        for widget in self.scroll_frame.winfo_children():
+            widget.destroy()
         total_size = 0
 
         try:
@@ -159,75 +131,39 @@ class FileExplorerApp(ctk.CTk):
                 if item.is_dir():
                     size = get_folder_size(item)
                     total_size += size
-                    line = f"📁 {item.name:<60} ({format_size(size)})\n"
+                    label = f"📁 {item.name} ({format_size(size)})"
+                    btn = ctk.CTkButton(
+                        self.scroll_frame,
+                        text=label,
+                        anchor="w",
+                        command=lambda p=item: self.open_folder(p),
+                    )
+                    btn.pack(fill="x", padx=5, pady=2)
+                    btn.bind("<Button-1>", lambda e, b=btn: self.select_item(b))
                 else:
                     size = item.stat().st_size
                     total_size += size
-                    line = f"{get_emoji(item)} {item.name:<60} ({format_size(size)})\n"
-                self.file_list.insert("end", line)
+                    label = f"{get_emoji(item)} {item.name} ({format_size(size)})"
+                    lbl = ctk.CTkLabel(self.scroll_frame, text=label, anchor="w")
+                    lbl.pack(fill="x", padx=5, pady=2)
+                    lbl.bind("<Button-1>", lambda e, l=lbl: self.select_item(l))
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to read folder:\n{e}")
+            messagebox.showerror("Error", f"Cannot open folder:\n{e}")
             return
 
         self.total_label.configure(text=f"Total: {format_size(total_size)}")
 
-    def on_double_click(self, event):
-        try:
-            index = self.file_list.index("@%d,%d linestart" % (event.x, event.y))
-            line = self.file_list.get(index, f"{index} lineend").strip()
-            name = line[2:].split(" (")[0].strip()
-            target = self.current_path / name
-            if target.is_dir():
-                self.history.append(self.current_path)
-                self.forward_history.clear()
-                self.current_path = target
-                self.load_folder(target)
-        except:
-            pass
+    def open_folder(self, path):
+        self.history.append(self.current_path)
+        self.forward_history.clear()
+        self.current_path = path
+        self.load_folder(path)
 
-    def on_right_click(self, event):
-        try:
-            self.file_list.tag_remove("sel", "1.0", "end")
-            index = self.file_list.index("@%d,%d linestart" % (event.x, event.y))
-            self.file_list.tag_add("sel", index, f"{index} lineend")
-            self.selected_line = self.file_list.get(index, f"{index} lineend").strip()
-            self.context_menu.tk_popup(event.x_root, event.y_root)
-        finally:
-            self.context_menu.grab_release()
-
-    def get_selected_path(self):
-        name = self.selected_line[2:].split(" (")[0].strip()
-        return self.current_path / name
-
-    def open_selected(self):
-        path = self.get_selected_path()
-        if path.is_file():
-            os.startfile(path)
-        elif path.is_dir():
-            self.history.append(self.current_path)
-            self.forward_history.clear()
-            self.current_path = path
-            self.load_folder(path)
-
-    def reveal_selected(self):
-        path = self.get_selected_path()
-        if path.exists():
-            reveal_in_explorer(str(path))
-
-    def delete_selected(self):
-        path = self.get_selected_path()
-        confirm = messagebox.askyesno(
-            "Confirm Delete", f"Are you sure you want to delete:\n{path.name}"
-        )
-        if confirm:
-            try:
-                if path.is_dir():
-                    shutil.rmtree(path)
-                else:
-                    path.unlink()
-                self.load_folder(self.current_path)
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to delete:\n{e}")
+    def select_item(self, widget):
+        if self.selected_widget:
+            self.selected_widget.configure(fg_color="transparent")
+        widget.configure(fg_color=ctk.ThemeManager.theme["CTkButton"]["fg_color"])
+        self.selected_widget = widget
 
 
 if __name__ == "__main__":

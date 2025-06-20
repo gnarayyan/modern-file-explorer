@@ -57,8 +57,8 @@ class FileExplorerApp(ctk.CTk):
         self.file_color = "#2d2d2d"
         self.highlight_color = "#1f6aa5"
 
-        self.sort_by = "name"
-        self.sort_order = "asc"
+        self.sort_by = "size"
+        self.sort_order = "desc"
 
         nav_frame = ctk.CTkFrame(self)
         nav_frame.pack(pady=5, padx=10, fill="x")

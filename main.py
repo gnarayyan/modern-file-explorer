@@ -5,6 +5,8 @@ from tkinter import filedialog, messagebox
 from pathlib import Path
 import subprocess
 
+from improvements.folder_size import get_folder_size_optimized
+
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
 
@@ -64,6 +66,9 @@ class FileExplorerApp(ctk.CTk):
         self.file_color = "#2d2d2d"
         self.highlight_color = "#1f6aa5"
 
+        self.sort_by = "name"  # or "size"
+        self.sort_order = "asc"  # or "desc"
+
         nav_frame = ctk.CTkFrame(self)
         nav_frame.pack(pady=5, padx=10, fill="x")
 
@@ -88,6 +93,20 @@ class FileExplorerApp(ctk.CTk):
         self.home_btn.pack(side="left", padx=5)
         self.select_btn.pack(side="left", padx=5)
         self.toggle_btn.pack(side="left", padx=5)
+
+        self.sort_option = ctk.CTkOptionMenu(
+            nav_frame,
+            values=["name", "size"],
+            command=self.change_sort_option,
+            width=100,
+        )
+        self.sort_option.set("name")
+        self.sort_option.pack(side="left", padx=5)
+
+        self.sort_order_btn = ctk.CTkButton(
+            nav_frame, text="⬇ Asc", width=60, command=self.toggle_sort_order
+        )
+        self.sort_order_btn.pack(side="left", padx=5)
 
         self.scroll_frame = ctk.CTkScrollableFrame(self, label_text="Contents")
         self.scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
@@ -129,18 +148,41 @@ class FileExplorerApp(ctk.CTk):
         self.current_path = Path.home() / "Downloads"
         self.load_folder(self.current_path)
 
+    def change_sort_option(self, value):
+        self.sort_by = value
+        self.load_folder(self.current_path)
+
+    def toggle_sort_order(self):
+        self.sort_order = "desc" if self.sort_order == "asc" else "asc"
+        arrow = "⬆ Desc" if self.sort_order == "desc" else "⬇ Asc"
+        self.sort_order_btn.configure(text=arrow)
+        self.load_folder(self.current_path)
+
     def load_folder(self, folder):
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
         total_size = 0
 
         try:
-            items = sorted(folder.iterdir(), key=lambda x: x.name.lower())
+            items = list(folder.iterdir())
+
+            def get_sort_key(item):
+                if self.sort_by == "size":
+                    return (
+                        get_folder_size_optimized(item)
+                        if item.is_dir()
+                        else item.stat().st_size
+                    )
+                else:
+                    return item.name.lower()
+
+            items.sort(key=get_sort_key, reverse=(self.sort_order == "desc"))
+
             row, col = 0, 0
 
             for item in items:
                 if item.is_dir():
-                    size = get_folder_size(item)
+                    size = get_folder_size_optimized(item)
                     total_size += size
                     label = f"📁 {item.name}\n{format_size(size)}"
                     btn = ctk.CTkButton(

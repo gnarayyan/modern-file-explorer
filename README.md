@@ -4,18 +4,21 @@ A modern file explorer built with Python's `tkinter` and `customtkinter` for a s
 
 ## Features
 
-| Feature                                               | Status     |
-| ----------------------------------------------------- | ---------- |
-| Dark/light theme switch                               | ⬜ Planned |
-| Search or filter                                      | ⬜ Planned |
-| Export to text file                                   | ⬜ Planned |
-| File open or delete integration                       | ⬜ Planned |
-| Open GUI with browse button                           | ✔ Done     |
-| View total size of current folder files               | ✔ Done     |
-| Set default as downloads folder                       | ✔ Done     |
-| Double-click folders to open and browse               | ✔ Done     |
-| Back/forward/home navigation buttons                  | ✔ Done     |
-| Right-click options: open, delete, reveal in explorer | ✔ Done     |
+| Feature                                                 | Status     |
+| ------------------------------------------------------- | ---------- |
+| Dark/light theme switch                                 | ⬜ Planned |
+| Search or filter                                        | ⬜ Planned |
+| Export to text file                                     | ⬜ Planned |
+| File open or delete integration                         | ⬜ Planned |
+| Open GUI with browse button                             | ✔ Done     |
+| View total size of current folder files                 | ✔ Done     |
+| Set default as downloads folder                         | ✔ Done     |
+| Double-click folders to open and browse                 | ✔ Done     |
+| Back/forward/home navigation buttons                    | ✔ Done     |
+| Right-click options: open, delete, reveal in explorer   | ✔ Done     |
+| show every folder as button (clickable, can open)       | ⬜ Planned |
+| show files as label(non clickable, cannot open)         | ⬜ Planned |
+| Make file/folder selectable (color changes + togglable) | ⬜ Planned |
 
 ## Installation
 
